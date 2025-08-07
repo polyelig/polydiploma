@@ -182,13 +182,29 @@
   }
 
   async function initDropdowns() {
-    showLoader(true);
-    const polys = await fetchData("getPolys");
-    populateSelect(polytechnic, polys, "Select Polytechnic");
+  try {
+    const polys = await fetchData("getPolytechnic");
+    populateSelect(polytechnicSelect, polys, "Polytechnic");
+
     const faculties = await fetchData("getFaculties");
-    populateSelect(faculty, faculties, "Select Faculty");
-    showLoader(false);
+    populateSelect(facultySelect, faculties, "Faculty");
+
+    polytechnicSelect.addEventListener("change", async () => {
+      const selectedPoly = polytechnicSelect.value;
+      const diplomas = await fetchData("getDiplomas", { polytechnic: selectedPoly });
+      populateSelect(diplomaSelect, diplomas, "Diploma");
+    });
+
+    facultySelect.addEventListener("change", async () => {
+      const selectedFaculty = facultySelect.value;
+      const programmes = await fetchData("getProgrammes", { faculty: selectedFaculty });
+      populateSelect(programmeSelect, programmes, "Programme");
+    });
+  } catch (err) {
+    console.error("Error initializing dropdowns:", err);
   }
+}
+
 
   faculty.addEventListener("change", async () => {
     const val = faculty.value;
