@@ -176,7 +176,7 @@
   }
 
   function populateSelect(selectElement, data, placeholder) {
-    selectElement.innerHTML = `<option value="">${placeholder}</option>`;
+    selectElement.innerHTML = `<option value="">Select ${placeholder}</option>`;
     data.forEach(item => {
       const opt = document.createElement("option");
       opt.value = opt.textContent = item;
@@ -185,89 +185,103 @@
   }
 
   function resetDropdowns() {
-    populateSelect(polytechnic, [], "Select Polytechnic");
-    populateSelect(diploma, [], "Select Diploma");
-    populateSelect(faculty, [], "Select Faculty");
-    populateSelect(programme, [], "Select Programme");
+    populateSelect(polytechnicSelect, [], "Polytechnic");
+    populateSelect(diplomaSelect, [], "Diploma");
+    populateSelect(facultySelect, [], "Faculty");
+    populateSelect(programmeSelect, [], "Programme");
   }
 
   async function fetchData(action, params = {}) {
     const url = new URL(apiBase);
     url.searchParams.set("action", action);
     Object.entries(params).forEach(([key, val]) => url.searchParams.set(key, val));
-
     const res = await fetch(url);
     return await res.json();
   }
 
   async function initDropdowns() {
-  try {
-    const polys = await fetchData("getPolytechnic");
-    populateSelect(polytechnicSelect, polys, "Polytechnic");
+    try {
+      const polys = await fetchData("getPolytechnic");
+      populateSelect(polytechnicSelect, polys, "Polytechnic");
 
-    const faculties = await fetchData("getFaculties");
-    populateSelect(facultySelect, faculties, "Faculty");
+      const faculties = await fetchData("getFaculties");
+      populateSelect(facultySelect, faculties, "Faculty");
+    } catch (err) {
+      console.error("Error initializing dropdowns:", err);
+    }
+  }
 
-    polytechnicSelect.addEventListener("change", async () => {
-      const selectedPoly = polytechnicSelect.value;
+  polytechnicSelect.addEventListener("change", async () => {
+    const selectedPoly = polytechnicSelect.value;
+
+    // Refresh diplomas
+    if (selectedPoly) {
       const diplomas = await fetchData("getDiplomas", { polytechnic: selectedPoly });
       populateSelect(diplomaSelect, diplomas, "Diploma");
-    });
+    } else {
+      populateSelect(diplomaSelect, [], "Diploma");
+    }
 
-    facultySelect.addEventListener("change", async () => {
-      const selectedFaculty = facultySelect.value;
+    // Clear programme
+    populateSelect(programmeSelect, [], "Programme");
+  });
+
+  diplomaSelect.addEventListener("change", () => {
+    // Clear programme
+    populateSelect(programmeSelect, [], "Programme");
+  });
+
+  facultySelect.addEventListener("change", async () => {
+    const selectedFaculty = facultySelect.value;
+
+    if (selectedFaculty) {
       const programmes = await fetchData("getProgrammes", { faculty: selectedFaculty });
       populateSelect(programmeSelect, programmes, "Programme");
-    });
-  } catch (err) {
-    console.error("Error initializing dropdowns:", err);
-  }
-}
-
-
-  faculty.addEventListener("change", async () => {
-    const val = faculty.value;
-    if (val) {
-      showLoader(true);
-      const progs = await fetchData("getProgrammes", { faculty: val });
-      populateSelect(programme, progs, "Select Programme");
-      showLoader(false);
+    } else {
+      populateSelect(programmeSelect, [], "Programme");
     }
   });
 
   document.getElementById("checkBtn").addEventListener("click", async () => {
-    const poly = polytechnic.value;
-    const dip = diploma.value;
-    const fac = faculty.value;
-    const prog = programme.value;
+    const poly = polytechnicSelect.value;
+    const dip = diplomaSelect.value;
+    const fac = facultySelect.value;
+    const prog = programmeSelect.value;
 
-    if (!poly || !fac || !prog) {
+    if (!poly || !dip || !fac || !prog) {
       alert("Please select all dropdowns.");
       return;
     }
 
     showLoader(true);
-    const result = await fetchData("checkEligibility", {
-      polytechnic: poly,
-      faculty: fac,
-      programme: prog
-    });
+    try {
+      const result = await fetchData("checkEligibility", {
+        polytechnic: poly,
+        diploma: dip,
+        faculty: fac,
+        programme: prog
+      });
 
-    resultsTable.innerHTML = "";
-    result.forEach(r => {
-      const row = resultsTable.insertRow();
-      row.innerHTML = `
-        <td>${r.No}</td>
-        <td>${r.Faculty}</td>
-        <td>${r.Programme}</td>
-        <td>${r.Requirements}</td>
-        <td><a href="${r.Website}" target="_blank">Link</a></td>
-      `;
-    });
+      resultsTable.innerHTML = "";
+      result.forEach((r, index) => {
+        const row = resultsTable.insertRow();
+        row.innerHTML = `
+          <td>${index + 1}</td>
+          <td>${r.Faculty}</td>
+          <td>${r.Programme}</td>
+          <td>${r.Requirements}</td>
+          <td><a href="${r.Website}" target="_blank">Link</a></td>
+        `;
+      });
 
-    summaryText.textContent = `Polytechnic: ${poly} | Diploma: ${dip} | Faculty: ${fac} | Programme: ${prog}`;
-    resetDropdowns();
-    await initDropdowns();
+      summaryText.textContent = `Polytechnic: ${poly} | Diploma: ${dip} | Faculty: ${fac} | Programme: ${prog}`;
+
+      resetDropdowns();
+      await initDropdowns();
+    } catch (err) {
+      console.error("Error checking eligibility:", err);
+      alert("Error retrieving results.");
+    }
     showLoader(false);
   });
 
@@ -282,6 +296,7 @@
     initDropdowns();
   };
 </script>
+
 
 </body>
 </html>
