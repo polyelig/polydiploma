@@ -214,7 +214,6 @@
   polytechnicSelect.addEventListener("change", async () => {
     const selectedPoly = polytechnicSelect.value;
 
-    // Refresh diplomas
     if (selectedPoly) {
       const diplomas = await fetchData("getDiplomas", { polytechnic: selectedPoly });
       populateSelect(diplomaSelect, diplomas, "Diploma");
@@ -222,12 +221,10 @@
       populateSelect(diplomaSelect, [], "Diploma");
     }
 
-    // Clear programme
     populateSelect(programmeSelect, [], "Programme");
   });
 
   diplomaSelect.addEventListener("change", () => {
-    // Clear programme
     populateSelect(programmeSelect, [], "Programme");
   });
 
@@ -248,8 +245,8 @@
     const fac = facultySelect.value;
     const prog = programmeSelect.value;
 
-    if (!poly || !dip || !fac || !prog) {
-      alert("Please select all dropdowns.");
+    if (!poly || !dip || !fac) {
+      alert("Please select Polytechnic, Diploma, and Faculty.");
       return;
     }
 
@@ -262,26 +259,25 @@
 
     showLoader(true);
     try {
-      const result = await fetchData("checkEligibility", {
-        polytechnic: poly,
-        diploma: dip,
-        faculty: fac,
-        programme: prog
-      });
+      const result = await fetchData("checkEligibility", params);
 
       resultsTable.innerHTML = "";
-      result.forEach((r, index) => {
-        const row = resultsTable.insertRow();
-        row.innerHTML = `
-          <td>${index + 1}</td>
-          <td>${r.Faculty}</td>
-          <td>${r.Programme}</td>
-          <td>${r.Requirements}</td>
-          <td><a href="${r.Website}" target="_blank">Link</a></td>
-        `;
-      });
+      if (result.length === 0) {
+        resultsTable.innerHTML = `<tr><td colspan="5">No matching programmes found.</td></tr>`;
+      } else {
+        result.forEach((r, index) => {
+          const row = resultsTable.insertRow();
+          row.innerHTML = `
+            <td>${r.No}</td>
+            <td>${r.Faculty}</td>
+            <td>${r.Programme}</td>
+            <td>${r.Requirements}</td>
+            <td><a href="${r.Website}" target="_blank">Link</a></td>
+          `;
+        });
+      }
 
-      summaryText.textContent = `Polytechnic: ${poly} | Diploma: ${dip} | Faculty: ${fac} | Programme: ${prog}`;
+      summaryText.textContent = `Polytechnic: ${poly} | Diploma: ${dip} | Faculty: ${fac}` + (prog ? ` | Programme: ${prog}` : "");
 
       resetDropdowns();
       await initDropdowns();
@@ -303,7 +299,3 @@
     initDropdowns();
   };
 </script>
-
-
-</body>
-</html>
