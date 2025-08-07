@@ -106,22 +106,41 @@
 <body>
 
 <div class="sidebar">
-  <select id="polytechnic">
-    <option value="">Select Polytechnic</option>
-  </select>
-  <select id="diploma">
-    <option value="">Select Diploma</option>
-  </select>
-  <select id="faculty">
-    <option value="">Select Faculty</option>
-  </select>
-  <select id="programme">
-    <option value="">Select Programme</option>
-  </select>
-  <button id="checkBtn">Check Eligibility</button>
-  <button id="resetBtn">Reset</button>
-  <div class="loader" id="loader"></div>
+  <div class="w-full max-w-xs space-y-4">
+    <label class="block">
+      <span class="block text-sm font-medium">Polytechnic</span>
+      <select id="polytechnic" class="w-full border p-2 rounded">
+        <option value="">Select Polytechnic</option>
+      </select>
+    </label>
+    <label class="block">
+      <span class="block text-sm font-medium">Diploma</span>
+      <select id="diploma" class="w-full border p-2 rounded">
+        <option value="">Select Diploma</option>
+      </select>
+    </label>
+    <label class="block">
+      <span class="block text-sm font-medium">College/Faculty</span>
+      <select id="faculty" class="w-full border p-2 rounded">
+        <option value="">Select Faculty</option>
+      </select>
+    </label>
+    <label class="block">
+      <span class="block text-sm font-medium">Programme</span>
+      <select id="programme" class="w-full border p-2 rounded">
+        <option value="">Select Programme</option>
+      </select>
+    </label>
+
+    <div class="flex gap-2">
+      <button id="checkBtn" class="bg-blue-600 text-white px-4 py-2 rounded">Check Eligibility</button>
+      <button id="resetBtn" class="bg-gray-400 text-white px-4 py-2 rounded">Reset</button>
+    </div>
+
+    <div class="loader hidden" id="loader"></div>
+  </div>
 </div>
+
 
 <div class="main-content">
   <div class="summary" id="summaryText"></div>
