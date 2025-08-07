@@ -253,6 +253,13 @@
       return;
     }
 
+    const params = {
+      polytechnic: poly,
+      diploma: dip,
+      faculty: fac
+    };
+    if (prog) params.programme = prog;
+
     showLoader(true);
     try {
       const result = await fetchData("checkEligibility", {
