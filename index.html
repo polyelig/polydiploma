@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Eligibility Checker</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      min-height: 100vh;
+      background-color: #f7f7f7;
+    }
+
+    .sidebar {
+      flex: 0 0 300px;
+      padding: 20px;
+      background-color: #ffffff;
+      box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+    }
+
+    .main-content {
+      flex: 1;
+      padding: 20px;
+      overflow: auto;
+    }
+
+    h1 {
+      font-size: 1.5em;
+      margin-bottom: 10px;
+    }
+
+    select, button {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 10px;
+      font-size: 1em;
+    }
+
+    .summary {
+      margin-bottom: 20px;
+      padding: 10px;
+      background: #e6f0ff;
+      border-left: 4px solid #3399ff;
+    }
+
+    .loader {
+      display: none;
+      border: 4px solid #f3f3f3;
+      border-radius: 50%;
+      border-top: 4px solid #3498db;
+      width: 24px;
+      height: 24px;
+      animation: spin 2s linear infinite;
+      margin: 10px auto;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+
+    th, td {
+      padding: 10px;
+      border: 1px solid #ccc;
+      text-align: left;
+    }
+
+    th {
+      background-color: #f0f0f0;
+    }
+
+    .results-container {
+      max-height: 70vh;
+      overflow-y: auto;
+    }
+
+    @media (max-width: 768px) {
+      body {
+        flex-direction: column;
+      }
+
+      .sidebar {
+        width: 100%;
+        box-shadow: none;
+      }
+
+      .main-content {
+        padding: 10px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<div class="sidebar">
+  <select id="polytechnic">
+    <option value="">Select Polytechnic</option>
+  </select>
+  <select id="diploma">
+    <option value="">Select Diploma</option>
+  </select>
+  <select id="faculty">
+    <option value="">Select Faculty</option>
+  </select>
+  <select id="programme">
+    <option value="">Select Programme</option>
+  </select>
+  <button id="checkBtn">Check Eligibility</button>
+  <button id="resetBtn">Reset</button>
+  <div class="loader" id="loader"></div>
+</div>
+
+<div class="main-content">
+  <div class="summary" id="summaryText"></div>
+  <div class="results-container">
+    <table id="resultsTable">
+      <thead>
+        <tr>
+          <th>No.</th>
+          <th>Faculty</th>
+          <th>Programme</th>
+          <th>Requirements</th>
+          <th>Website</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+  const apiBase = "https://script.google.com/macros/s/AKfycby5Fxt2D12qrKIfnqVjb0P8zWUepSz0LDIllXig0pkoBQUmr6V6TsxoEY9uCLV6435K/exec";
+
+  const polytechnic = document.getElementById("polytechnic");
+  const diploma = document.getElementById("diploma");
+  const faculty = document.getElementById("faculty");
+  const programme = document.getElementById("programme");
+  const resultsTable = document.getElementById("resultsTable").querySelector("tbody");
+  const summaryText = document.getElementById("summaryText");
+  const loader = document.getElementById("loader");
+
+  function showLoader(show) {
+    loader.style.display = show ? "block" : "none";
+  }
+
+  function populateSelect(selectElement, data, placeholder) {
+    selectElement.innerHTML = `<option value="">${placeholder}</option>`;
+    data.forEach(item => {
+      const opt = document.createElement("option");
+      opt.value = opt.textContent = item;
+      selectElement.appendChild(opt);
+    });
+  }
+
+  function resetDropdowns() {
+    populateSelect(polytechnic, [], "Select Polytechnic");
+    populateSelect(diploma, [], "Select Diploma");
+    populateSelect(faculty, [], "Select Faculty");
+    populateSelect(programme, [], "Select Programme");
+  }
+
+  async function fetchData(action, params = {}) {
+    const url = new URL(apiBase);
+    url.searchParams.set("action", action);
+    Object.entries(params).forEach(([key, val]) => url.searchParams.set(key, val));
+
+    const res = await fetch(url);
+    return await res.json();
+  }
+
+  async function initDropdowns() {
+    showLoader(true);
+    const polys = await fetchData("getPolys");
+    populateSelect(polytechnic, polys, "Select Polytechnic");
+    const faculties = await fetchData("getFaculties");
+    populateSelect(faculty, faculties, "Select Faculty");
+    showLoader(false);
+  }
+
+  faculty.addEventListener("change", async () => {
+    const val = faculty.value;
+    if (val) {
+      showLoader(true);
+      const progs = await fetchData("getProgrammes", { faculty: val });
+      populateSelect(programme, progs, "Select Programme");
+      showLoader(false);
+    }
+  });
+
+  document.getElementById("checkBtn").addEventListener("click", async () => {
+    const poly = polytechnic.value;
+    const dip = diploma.value;
+    const fac = faculty.value;
+    const prog = programme.value;
+
+    if (!poly || !fac || !prog) {
+      alert("Please select all dropdowns.");
+      return;
+    }
+
+    showLoader(true);
+    const result = await fetchData("checkEligibility", {
+      polytechnic: poly,
+      faculty: fac,
+      programme: prog
+    });
+
+    resultsTable.innerHTML = "";
+    result.forEach(r => {
+      const row = resultsTable.insertRow();
+      row.innerHTML = `
+        <td>${r.No}</td>
+        <td>${r.Faculty}</td>
+        <td>${r.Programme}</td>
+        <td>${r.Requirements}</td>
+        <td><a href="${r.Website}" target="_blank">Link</a></td>
+      `;
+    });
+
+    summaryText.textContent = `Polytechnic: ${poly} | Diploma: ${dip} | Faculty: ${fac} | Programme: ${prog}`;
+    resetDropdowns();
+    await initDropdowns();
+    showLoader(false);
+  });
+
+  document.getElementById("resetBtn").addEventListener("click", () => {
+    resultsTable.innerHTML = "";
+    summaryText.textContent = "";
+    resetDropdowns();
+    initDropdowns();
+  });
+
+  window.onload = () => {
+    initDropdowns();
+  };
+</script>
+
+</body>
+</html>
