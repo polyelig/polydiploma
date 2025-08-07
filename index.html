@@ -161,7 +161,7 @@
 </div>
 
 <script>
-  const apiBase = "https://script.google.com/macros/s/AKfycby7XAr1IKH0R0HpoTkmv84ohigotdluUaq5e5arDQ2MdivdzvLJEU0Uo2JB7zRvk9Mk/exec";
+  const apiBase = "https://script.google.com/macros/s/AKfycbyNJOnnfGiPqnlcYfq3fx84pf_-djCuSR62NyRaaZUIQOcaYI2acjmN8cMS_3ej6Aso/exec";
 
   const polytechnicSelect = document.getElementById("polytechnic");
   const diplomaSelect = document.getElementById("diploma");
@@ -173,10 +173,21 @@
 
   function showLoader(show) {
     loader.style.display = show ? "block" : "none";
+    polytechnicSelect.disabled = show;
+    diplomaSelect.disabled = show;
+    facultySelect.disabled = show;
+    programmeSelect.disabled = show;
+    document.getElementById("checkBtn").disabled = show;
+    document.getElementById("resetBtn").disabled = show;
   }
 
   function populateSelect(selectElement, data, placeholder) {
-    selectElement.innerHTML = `<option value="">Select ${placeholder}</option>`;
+    if (placeholder === "Programme") {
+      selectElement.innerHTML = `<option value="">(Optional) Select Programme</option>`;
+    } else {
+      selectElement.innerHTML = `<option value="">Select ${placeholder}</option>`;
+    }
+
     data.forEach(item => {
       const opt = document.createElement("option");
       opt.value = opt.textContent = item;
@@ -277,7 +288,12 @@
         });
       }
 
-      summaryText.textContent = `Polytechnic: ${poly} | Diploma: ${dip} | Faculty: ${fac}` + (prog ? ` | Programme: ${prog}` : "");
+      summaryText.innerHTML = `
+        <strong>Polytechnic:</strong> ${poly} |
+        <strong>Diploma:</strong> ${dip} |
+        <strong>Faculty:</strong> ${fac}
+        ${prog ? `| <strong>Programme:</strong> ${prog}` : ""}
+      `;
 
       resetDropdowns();
       await initDropdowns();
@@ -299,3 +315,4 @@
     initDropdowns();
   };
 </script>
+
