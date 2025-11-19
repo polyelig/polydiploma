@@ -198,6 +198,9 @@
     }
   };
 
+  const diplomaCache = new Map();
+  const programmeCache = new Map();
+
   function updateSummary(state = "default", customText = null) {
     const summary = summaryStates[state] || summaryStates.default;
     summaryText.textContent = customText || summary.text;
@@ -248,10 +251,11 @@
 
   async function initDropdowns() {
     try {
-      const polys = await fetchData("getPolytechnic");
+      const [polys, faculties] = await Promise.all([
+        fetchData("getPolytechnic"),
+        fetchData("getFaculties")
+      ]);
       populateSelect(polytechnicSelect, polys, "Polytechnic");
-
-      const faculties = await fetchData("getFaculties");
       populateSelect(facultySelect, faculties, "Faculty");
       updateSummary();
     } catch (err) {
@@ -265,7 +269,11 @@
 
     try {
       if (selectedPoly) {
-        const diplomas = await fetchData("getDiplomas", { polytechnic: selectedPoly });
+        const cachedDiplomas = diplomaCache.get(selectedPoly);
+        const diplomas = cachedDiplomas || await fetchData("getDiplomas", { polytechnic: selectedPoly });
+        if (!cachedDiplomas) {
+          diplomaCache.set(selectedPoly, diplomas);
+        }
         populateSelect(diplomaSelect, diplomas, "Diploma");
       } else {
         populateSelect(diplomaSelect, [], "Diploma");
@@ -287,7 +295,11 @@
 
     try {
       if (selectedFaculty) {
-        const programmes = await fetchData("getProgrammes", { faculty: selectedFaculty });
+        const cachedProgrammes = programmeCache.get(selectedFaculty);
+        const programmes = cachedProgrammes || await fetchData("getProgrammes", { faculty: selectedFaculty });
+        if (!cachedProgrammes) {
+          programmeCache.set(selectedFaculty, programmes);
+        }
         populateSelect(programmeSelect, programmes, "Programme");
       } else {
         populateSelect(programmeSelect, [], "Programme");
