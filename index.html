@@ -50,6 +50,18 @@
       border-left: 4px solid #3399ff;
     }
 
+    .summary[data-state="error"] {
+      background: #fdecea;
+      border-left-color: #d93025;
+      color: #8a1c13;
+    }
+
+    .summary[data-state="info"] {
+      background: #e6f0ff;
+      border-left-color: #3399ff;
+      color: #003f8c;
+    }
+
     .loader {
       display: none;
       border: 4px solid #f3f3f3;
@@ -171,6 +183,27 @@
   const summaryText = document.getElementById("summaryText");
   const loader = document.getElementById("loader");
 
+  const summaryStates = {
+    default: {
+      text: "Select a polytechnic, diploma and faculty to see eligible programmes.",
+      className: "info"
+    },
+    loading: {
+      text: "Retrieving programmes. Please wait...",
+      className: "info"
+    },
+    error: {
+      text: "We were unable to fetch the requested information. Please try again.",
+      className: "error"
+    }
+  };
+
+  function updateSummary(state = "default", customText = null) {
+    const summary = summaryStates[state] || summaryStates.default;
+    summaryText.textContent = customText || summary.text;
+    summaryText.dataset.state = summary.className;
+  }
+
   function showLoader(show) {
     loader.style.display = show ? "block" : "none";
     polytechnicSelect.disabled = show;
@@ -207,6 +240,9 @@
     url.searchParams.set("action", action);
     Object.entries(params).forEach(([key, val]) => url.searchParams.set(key, val));
     const res = await fetch(url);
+    if (!res.ok) {
+      throw new Error(`Request failed with status ${res.status}`);
+    }
     return await res.json();
   }
 
@@ -217,19 +253,26 @@
 
       const faculties = await fetchData("getFaculties");
       populateSelect(facultySelect, faculties, "Faculty");
+      updateSummary();
     } catch (err) {
       console.error("Error initializing dropdowns:", err);
+      updateSummary("error");
     }
   }
 
   polytechnicSelect.addEventListener("change", async () => {
     const selectedPoly = polytechnicSelect.value;
 
-    if (selectedPoly) {
-      const diplomas = await fetchData("getDiplomas", { polytechnic: selectedPoly });
-      populateSelect(diplomaSelect, diplomas, "Diploma");
-    } else {
-      populateSelect(diplomaSelect, [], "Diploma");
+    try {
+      if (selectedPoly) {
+        const diplomas = await fetchData("getDiplomas", { polytechnic: selectedPoly });
+        populateSelect(diplomaSelect, diplomas, "Diploma");
+      } else {
+        populateSelect(diplomaSelect, [], "Diploma");
+      }
+    } catch (err) {
+      console.error("Error fetching diplomas:", err);
+      updateSummary("error");
     }
 
     populateSelect(programmeSelect, [], "Programme");
@@ -242,11 +285,16 @@
   facultySelect.addEventListener("change", async () => {
     const selectedFaculty = facultySelect.value;
 
-    if (selectedFaculty) {
-      const programmes = await fetchData("getProgrammes", { faculty: selectedFaculty });
-      populateSelect(programmeSelect, programmes, "Programme");
-    } else {
-      populateSelect(programmeSelect, [], "Programme");
+    try {
+      if (selectedFaculty) {
+        const programmes = await fetchData("getProgrammes", { faculty: selectedFaculty });
+        populateSelect(programmeSelect, programmes, "Programme");
+      } else {
+        populateSelect(programmeSelect, [], "Programme");
+      }
+    } catch (err) {
+      console.error("Error fetching programmes:", err);
+      updateSummary("error");
     }
   });
 
@@ -269,6 +317,7 @@
     if (prog) params.programme = prog;
 
     showLoader(true);
+    updateSummary("loading");
     try {
       const result = await fetchData("checkEligibility", params);
 
@@ -279,7 +328,7 @@
         result.forEach((r, index) => {
           const row = resultsTable.insertRow();
           row.innerHTML = `
-            <td>${r.No}</td>
+            <td>${r.No ?? index + 1}</td>
             <td>${r.Faculty}</td>
             <td>${r.Programme}</td>
             <td>${r.Requirements}</td>
@@ -300,6 +349,7 @@
     } catch (err) {
       console.error("Error checking eligibility:", err);
       alert("Error retrieving results.");
+      updateSummary("error");
     }
     showLoader(false);
   });
@@ -312,6 +362,7 @@
   });
 
   window.onload = () => {
+    updateSummary();
     initDropdowns();
   };
 </script>
